@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: notification-service
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    stream:
+      bindings:
+        authCodeConsumer-in-0:
+          destination: auth-codes-topic
+          group: telegram-bot-group
+          content-type: application/json
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+          auto-create-topics: true
+
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:8763009311:AAEyQHYvP4xQvt-1OcSB_yxH5ov7BzTQgtQ}
+    username: ${TELEGRAM_BOT_USERNAME:Food_delivery_not_bot}
+
+logging:
+  level:
+    com.example.notification: DEBUG
+    org.springframework: ERROR
+    org.apache.kafka: ERROR
+    org.apache.zookeeper: ERROR
+    kafka: ERROR
