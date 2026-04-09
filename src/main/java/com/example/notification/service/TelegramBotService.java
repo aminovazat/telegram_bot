@@ -37,20 +37,16 @@ public class TelegramBotService extends TelegramLongPollingBot {
       System.out.println("Получено: " + text + " от " + chatId);
 
       if (text.equals("/start")) {
-        sendMessage(chatId, "✅ Бот запущен!\nНапиши /test для проверки.\nНапиши /info для отладки.");
+        sendMessage(chatId, "✅ Бот запущен!\nНапиши /test для проверки.\nНапиши /info для отладки.\nНапиши /github для ссылки на репозиторий.");
       }
       else if (text.equals("/test")) {
         sendMessage(chatId, "✅ Бот работает отлично!");
       }
       else if (text.equals("/info")) {
-        // Генерируем случайный 6-значный код
         int randomCode = (int) (Math.random() * 900000) + 100000;
-
-        // Получаем username (если есть)
         String username = update.getMessage().getFrom().getUserName();
         String usernameText = (username != null && !username.isEmpty()) ? "@" + username : "не указан";
 
-        // Формируем сообщение
         String infoMessage = String.format(
           "📋 *Отладочная информация*\n\n" +
             "🆔 *Chat ID:* `%s`\n" +
@@ -65,17 +61,20 @@ public class TelegramBotService extends TelegramLongPollingBot {
           randomCode,
           java.time.LocalDateTime.now().toString().substring(0, 19)
         );
-
         sendMessage(chatId, infoMessage);
       }
+      else if (text.equals("/github")) {
+        sendMessage(chatId, "📦 *GitHub репозиторий:*\n[github.com/aminovazat/telegram_bot](https://github.com/aminovazat/telegram_bot)");
+      }
       else {
-        sendMessage(chatId, "Используй команды:\n/start - приветствие\n/test - проверка\n/info - отладка");
+        sendMessage(chatId, "Используй команды:\n/start - приветствие\n/test - проверка\n/info - отладка\n/github - ссылка на репозиторий");
       }
     }
   }
 
   /**
    * Публичный метод для отправки кода подтверждения
+   * Вызывается из Kafka Consumer
    */
   public void sendAuthCode(String chatId, String code) {
     String messageText = String.format(
@@ -85,6 +84,9 @@ public class TelegramBotService extends TelegramLongPollingBot {
     sendMessage(chatId, messageText);
   }
 
+  /**
+   * Приватный метод для отправки любого сообщения
+   */
   private void sendMessage(String chatId, String text) {
     SendMessage message = new SendMessage(chatId, text);
     message.setParseMode("Markdown");
