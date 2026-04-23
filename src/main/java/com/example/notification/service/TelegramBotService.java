@@ -30,6 +30,11 @@ public class TelegramBotService extends TelegramLongPollingBot {
 
   @Override
   public void onUpdateReceived(Update update) {
+    if (update == null) {
+      log.warn("Получен null update, обработка пропущена");
+      return;
+    }
+
     if (update.hasMessage() && update.getMessage().hasText()) {
       String chatId = update.getMessage().getChatId().toString();
       String text = update.getMessage().getText();
@@ -44,7 +49,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
       }
       else if (text.equals("/info")) {
         int randomCode = (int) (Math.random() * 900000) + 100000;
-        String username = update.getMessage().getFrom().getUserName();
+        Long fromUserId = update.getMessage().getFrom() != null ? update.getMessage().getFrom().getId() : null;
+        String username = update.getMessage().getFrom() != null ? update.getMessage().getFrom().getUserName() : null;
         String usernameText = (username != null && !username.isEmpty()) ? "@" + username : "не указан";
 
         String infoMessage = String.format(
@@ -56,7 +62,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
             "⏰ *Время:* `%s`\n\n" +
             "💡 Этот chatId нужно сохранить в БД для отправки кодов подтверждения.",
           chatId,
-          update.getMessage().getFrom().getId().toString(),
+          fromUserId != null ? fromUserId.toString() : "не указан",
           usernameText,
           randomCode,
           java.time.LocalDateTime.now().toString().substring(0, 19)
@@ -87,7 +93,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
   /**
    * Приватный метод для отправки любого сообщения
    */
-  private void sendMessage(String chatId, String text) {
+  protected void sendMessage(String chatId, String text) {
     SendMessage message = new SendMessage(chatId, text);
     message.setParseMode("Markdown");
     try {
