@@ -3,10 +3,14 @@ package com.example.notification.service;
 import com.example.notification.config.BotConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -159,6 +163,47 @@ class TelegramBotServiceTest {
     assertThat(text).contains("Username:* не указан");
   }
 
+  @Test
+  void shouldReturnConfiguredBotCredentials() {
+    assertThat(botService.getBotToken()).isEqualTo("test-token");
+    assertThat(botService.getBotUsername()).isEqualTo("test-bot");
+  }
+
+  @Test
+  void shouldDisplayUnknownUsernameWhenUsernameIsEmpty() {
+    Update update = createTextUpdate(1001L, 2002L, "", "/info");
+
+    botService.onUpdateReceived(update);
+
+    assertThat(botService.sentMessages).hasSize(1);
+    assertThat(botService.sentMessages.get(0).text())
+      .contains("Username:*")
+      .doesNotContain("@");
+  }
+
+  @Test
+  void sendMessageShouldCreateMarkdownTelegramMessage() {
+    ExecutingTelegramBotService executingBotService = new ExecutingTelegramBotService(createConfig());
+
+    executingBotService.sendMessage("chat-9", "hello");
+
+    assertThat(executingBotService.executedMethods).hasSize(1);
+    SendMessage message = (SendMessage) executingBotService.executedMethods.get(0);
+    assertThat(message.getChatId()).isEqualTo("chat-9");
+    assertThat(message.getText()).isEqualTo("hello");
+    assertThat(message.getParseMode()).isEqualTo("Markdown");
+  }
+
+  @Test
+  void sendMessageShouldSwallowTelegramApiException() {
+    ExecutingTelegramBotService executingBotService = new ExecutingTelegramBotService(createConfig());
+    executingBotService.exceptionToThrow = new TelegramApiException("Telegram is down");
+
+    executingBotService.sendMessage("chat-9", "hello");
+
+    assertThat(executingBotService.executedMethods).hasSize(1);
+  }
+
   private static Update createTextUpdate(Long chatId, Long userId, String username, String text) {
     Update update = mock(Update.class);
     Message message = mock(Message.class);
@@ -176,6 +221,13 @@ class TelegramBotServiceTest {
     return update;
   }
 
+  private static BotConfig createConfig() {
+    BotConfig config = new BotConfig();
+    config.setToken("test-token");
+    config.setUsername("test-bot");
+    return config;
+  }
+
   private static class CapturingTelegramBotService extends TelegramBotService {
 
     private final List<SentMessage> sentMessages = new ArrayList<>();
@@ -191,5 +243,25 @@ class TelegramBotServiceTest {
   }
 
   private record SentMessage(String chatId, String text) {
+  }
+
+  private static class ExecutingTelegramBotService extends TelegramBotService {
+
+    private final List<BotApiMethod<?>> executedMethods = new ArrayList<>();
+    private TelegramApiException exceptionToThrow;
+
+    private ExecutingTelegramBotService(BotConfig botConfig) {
+      super(botConfig);
+    }
+
+    @Override
+    public <T extends Serializable, Method extends BotApiMethod<T>> T execute(Method method)
+      throws TelegramApiException {
+      executedMethods.add(method);
+      if (exceptionToThrow != null) {
+        throw exceptionToThrow;
+      }
+      return null;
+    }
   }
 }
