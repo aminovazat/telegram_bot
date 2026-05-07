@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 public class AuthCodeRequest {
   private String chatId;   // ID чата в Telegram
   private String code;     // Сгенерированный код
-  private String userId;   // ID пользователя в вашей системе
+  private String userId;
+  private String email;
 }
