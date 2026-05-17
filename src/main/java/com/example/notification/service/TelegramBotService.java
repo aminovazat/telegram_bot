@@ -54,23 +54,13 @@ public class TelegramBotService extends TelegramLongPollingBot {
                 String usernameText = (username != null && !username.isEmpty()) ? "@" + username : "не указан";
 
                 String infoMessage = String.format(
-                        "📋 *Отладочная информация*\n\n" +
-                                "*Chat ID:* `%s`\n" +
-                                "*User ID:* `%s`\n" +
-                                "*Username:* %s\n" +
-                                "*Рандомный код:* `%d`\n" +
-                                "*Время:* `%s`\n\n" +
-                                "Этот chatId нужно сохранить в БД для отправки кодов подтверждения и уведомлений о заказах.",
-                        chatId,
-                        fromUserId != null ? fromUserId.toString() : "не указан",
-                        usernameText,
-                        randomCode,
-                        java.time.LocalDateTime.now().toString().substring(0, 19)
+                        "Chat ID: %s\n",
+                        chatId
                 );
                 sendMessage(chatId, infoMessage);
             }
             else if (text.equals("/github")) {
-                sendMessage(chatId, "*GitHub репозиторий:*\n[github.com/aminovazat/telegram_bot](https://github.com/aminovazat/telegram_bot)");
+                sendMessage(chatId, "GitHub репозиторий:\nhttps://github.com/aminovazat/telegram_bot");
             }
             else {
                 sendMessage(chatId, "Используй команды:\n/start - приветствие\n/test - проверка\n/info - отладка\n/github - ссылка на репозиторий");
@@ -84,7 +74,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
      */
     public void sendAuthCode(String chatId, String code) {
         String messageText = String.format(
-                "*Код подтверждения:* `%s`\n\nНикому не сообщайте этот код. Он действителен 5 минут.",
+                "Код подтверждения: %s\n\nНикому не сообщайте этот код. Он действителен 5 минут.",
                 code
         );
         sendMessage(chatId, messageText);
@@ -99,16 +89,19 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
 
     /**
-     * Приватный метод для отправки любого сообщения.
+     * Метод для отправки любого сообщения.
+     * Если Telegram API не смог отправить сообщение, пробрасываем ошибку выше,
+     * чтобы consumer не писал ложный лог "отправлено".
      */
     protected void sendMessage(String chatId, String text) {
         SendMessage message = new SendMessage(chatId, text);
-        message.setParseMode("Markdown");
+
         try {
             execute(message);
             log.info("Сообщение отправлено в чат {}", chatId);
         } catch (TelegramApiException e) {
-            log.error("Ошибка отправки в чат {}: {}", chatId, e.getMessage());
+            log.error("Ошибка отправки в чат {}: {}", chatId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось отправить сообщение в Telegram", e);
         }
     }
 }

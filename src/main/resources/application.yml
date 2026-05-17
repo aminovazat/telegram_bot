@@ -10,6 +10,8 @@ spring:
   main:
     allow-bean-definition-overriding: true
   cloud:
+    function:
+      definition: authCodeConsumer;orderStatusConsumer
     stream:
       bindings:
         authCodeConsumer-in-0:
